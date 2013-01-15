@@ -1,0 +1,796 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>Score Card</title>
+<script type="text/javascript" charset="utf-8" src="cordova-2.0.0.js"></script>
+<script src="jquery-1.7.1.js"></script>
+<script src="jquery.mobile-1.1.1.min.js"></script>
+<script type="text/javascript" charset="utf-8" src="jquery.zweatherfeed.min.js"></script>
+<script type="text/javascript" charset="utf-8" src="golf.service.js"></script>
+
+<link rel="stylesheet" href="jquery.zweatherfeed.css" />
+<link rel="stylesheet" href="scorecard.css" />
+<link rel="stylesheet" href="jquery.mobile-1.1.1.min.css" />
+<link rel="stylesheet" href="ScoreCardGreen.min.css" />
+
+<style type="text/css">
+	.green { background-image: url(images/green.jpg); 
+				background-size:cover
+			}
+				
+	.grass { 
+		background-image: url(images/grass.jpg); 
+			}
+				
+</style>
+
+<script type="text/javascript">
+
+	var ipAddress = "localhost";//golf-saas-storefront.j.layershift.co.uk";//"golf-saas-storefront.cloudfoundry.com";//"localhost";//"10.0.2.2";//
+	var port = "8080";//"8080";//"50425";//
+	var context = '/golf-saas-storefront';//'storefront';//'';//'/golf-saas-storefront';//
+	var scoreCard;
+	var userid;
+	var name;
+	
+	document.addEventListener("deviceready", onDeviceReady, false);
+	function populateDB(tx) {
+		//tx.executeSql('DROP TABLE IF EXISTS GOLF_COURSE');
+		//tx.executeSql('DROP TABLE IF EXISTS SCORECARD');
+		//tx.executeSql('DROP TABLE IF EXISTS SCORECARD_RECORD');
+		//tx.executeSql('DROP TABLE IF EXISTS SCORECARD_RECORD_HISTORY');
+		//tx.executeSql('DROP TABLE IF EXISTS SCORECARD_RECORD_CURRENT');
+		tx.executeSql('CREATE TABLE IF NOT EXISTS GOLF_COURSE (id INTEGER PRIMARY KEY, golfcourseid varchar, golfcoursename varchar)');//TODO
+		tx.executeSql('CREATE TABLE IF NOT EXISTS SCORECARD (id INTEGER PRIMARY KEY, golfcourseid varchar, holepar1 INTEGER, holepar2 INTEGER, holepar3 INTEGER, holepar4 INTEGER, holepar5 INTEGER, holepar6 INTEGER, holepar7 INTEGER, holepar8 INTEGER, holepar9 INTEGER, holepar10 INTEGER, holepar11 INTEGER, holepar12 INTEGER, holepar13 INTEGER, holepar14 INTEGER, holepar15 INTEGER, holepar16 INTEGER, holepar17 INTEGER, holepar18 INTEGER, holeindex1 INTEGER, holeindex2 INTEGER, holeindex3 INTEGER, holeindex4 INTEGER, holeindex5 INTEGER, holeindex6 INTEGER, holeindex7 INTEGER, holeindex8 INTEGER, holeindex9 INTEGER, holeindex10 INTEGER, holeindex11 INTEGER, holeindex12 INTEGER, holeindex13 INTEGER, holeindex14 INTEGER, holeindex15 INTEGER, holeindex16 INTEGER, holeindex17 INTEGER, holeindex18 INTEGER)');
+		tx.executeSql('CREATE TABLE IF NOT EXISTS SCORECARD_RECORD (id INTEGER PRIMARY KEY, scorecardid varchar, hole1 INTEGER, hole2 INTEGER, hole3 INTEGER, hole4 INTEGER, hole5 INTEGER, hole6 INTEGER, hole7 INTEGER, hole8 INTEGER, hole9 INTEGER, hole10 INTEGER, hole11 INTEGER, hole12 INTEGER, hole13 INTEGER, hole14 INTEGER, hole15 INTEGER, hole16 INTEGER, hole17 INTEGER, hole18 INTEGER)');
+		tx.executeSql('CREATE TABLE IF NOT EXISTS SCORECARD_RECORD_HISTORY (id INTEGER PRIMARY KEY, golfcourseid varchar, hole1 INTEGER, hole2 INTEGER, hole3 INTEGER, hole4 INTEGER, hole5 INTEGER, hole6 INTEGER, hole7 INTEGER, hole8 INTEGER, hole9 INTEGER, hole10 INTEGER, hole11 INTEGER, hole12 INTEGER, hole13 INTEGER, hole14 INTEGER, hole15 INTEGER, hole16 INTEGER, hole17 INTEGER, hole18 INTEGER)');
+		tx.executeSql('CREATE TABLE IF NOT EXISTS SCORECARD_RECORD_CURRENT (golfcourseid varchar, hole1 varchar, hole2 varchar, hole3 varchar, hole4 varchar, hole5 varchar, hole6 varchar, hole7 varchar, hole8 varchar, hole9 varchar, hole10 varchar, hole11 varchar, hole12 varchar, hole13 varchar, hole14 varchar, hole15 varchar, hole16 varchar, hole17 varchar, hole18 varchar)');
+		tx.executeSql('SELECT * FROM SCORECARD_RECORD_CURRENT', [], function(tx, result) {
+			if (result != null) {
+				var len = result.rows.length;
+				if (len == 0) {
+					tx.executeSql("INSERT INTO SCORECARD_RECORD_CURRENT(golfcourseid, hole1, hole2, hole3, hole4, hole5, hole6, hole7, hole8, hole9, hole10, hole11, hole12, hole13, hole14, hole15, hole16, hole17, hole18) VALUES ('0', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)");
+				}
+			}
+		});
+	}
+	
+	function updateGolfCourse(golfcourseid, golfcoursename) {
+		var db = window.openDatabase("Golf", "1.0", "GolfDB", 200000);
+		db.transaction(function(tx) {
+			tx.executeSql('SELECT * FROM GOLF_COURSE where golfcourseid = ?', [golfcourseid], function(tx,result){
+				if (result != null) {
+					var len = result.rows.length;
+					if (len > 0) {
+						for (var i=0; i<len; i++) {
+							tx.executeSql("UPDATE GOLF_COURSE set golfcoursename = '" + golfcoursename + "' where golfcourseid = '" + result.rows.item(i).golfcourseid + "'");
+						}
+					} else {
+						tx.executeSql('INSERT INTO GOLF_(golfcourseid,golfcoursename) VALUES ("' + golfcourseid + '", "' + golfcoursename + '")');
+					}
+				}
+			}, errorDB);
+		});
+	}
+	
+	function getHoleScore(holeNo) {
+		var db = window.openDatabase("Golf", "1.0", "GolfDB", 200000);
+		db.transaction(function(tx) {
+			tx.executeSql("SELECT hole" + holeNo + " from SCORECARD_RECORD_CURRENT", [], function(tx,result){
+				var len = result.rows.length;
+				if (len > 0) {
+					for (var i=0; i<len; i++) {
+							if (holeNo == 1) {
+								$('#currentScore').text(result.rows.item(i).hole1);
+							} else if (holeNo == 2) {
+								$('#currentScore').text(result.rows.item(i).hole2);
+							} else if (holeNo == 3) {
+								$('#currentScore').text(result.rows.item(i).hole3);
+							} else if (holeNo == 4) {
+								$('#currentScore').text(result.rows.item(i).hole4);
+							} else if (holeNo == 5) {
+								$('#currentScore').text(result.rows.item(i).hole5);
+							} else if (holeNo == 6) {
+								$('#currentScore').text(result.rows.item(i).hole6);
+							} else if (holeNo == 7) {
+								$('#currentScore').text(result.rows.item(i).hole7);
+							} else if (holeNo == 8) {
+								$('#currentScore').text(result.rows.item(i).hole8);
+							} else if (holeNo == 9) {
+								$('#currentScore').text(result.rows.item(i).hole9);
+							} else if (holeNo == 10) {
+								$('#currentScore').text(result.rows.item(i).hole10);
+							} else if (holeNo == 11) {
+								$('#currentScore').text(result.rows.item(i).hole11);
+							} else if (holeNo == 12) {
+								$('#currentScore').text(result.rows.item(i).hole12);
+							} else if (holeNo == 13) {
+								$('#currentScore').text(result.rows.item(i).hole13);
+							} else if (holeNo == 14) {
+								$('#currentScore').text(result.rows.item(i).hole14);
+							} else if (holeNo == 15) {
+								$('#currentScore').text(result.rows.item(i).hole15);
+							} else if (holeNo == 16) {
+								$('#currentScore').text(result.rows.item(i).hole16);
+							} else if (holeNo == 17) {
+								$('#currentScore').text(result.rows.item(i).hole17);
+							} else if (holeNo == 18) {
+								$('#currentScore').text(result.rows.item(i).hole18);
+							}
+					}
+				}
+			}, errorDB);
+		});
+	}
+	function setCurrentScoreCardGolfCourseID(id) {
+		//alert("UPDATE SCORECARD_RECORD_CURRENT set hole" + holeNo + " = " + shots);
+		//TODO find out if I have to keep opening the db? or can I just put it in the script tag???
+		var db = window.openDatabase("Golf", "1.0", "GolfDB", 200000);
+		db.transaction(function(tx) {
+			tx.executeSql("UPDATE SCORECARD_RECORD_CURRENT set golfcourseid = '" + id + "', hole1 = '0', hole2 = '0', hole3 = '0', hole4 = '0', hole5 = '0', hole6 = '0', hole7 = '0', hole8 = '0', hole9 = '0', hole10 = '0', hole11 = '0', hole12 = '0', hole13 = '0', hole14 = '0', hole15 = '0', hole16 = '0', hole17 = '0', hole18 = '0'");
+		});
+	}
+	function updateHoleScore(holeNo, shots) {
+		//alert("UPDATE SCORECARD_RECORD_CURRENT set hole" + holeNo + " = " + shots);
+		//TODO find out if I have to keep opening the db? or can I just put it in the script tag???
+		var db = window.openDatabase("Golf", "1.0", "GolfDB", 200000);
+		db.transaction(function(tx) {
+			tx.executeSql("UPDATE SCORECARD_RECORD_CURRENT set hole" + holeNo + " = " + shots);
+		});
+	}
+	function errorDB(err) {
+		alert("Error processing SQL: " + err.code);
+		alert(err);
+	}
+	function onDeviceReady() {
+		var db = window.openDatabase("Golf", "1.0", "GolfDB", 200000);
+		db.transaction(populateDB, errorDB);
+	}
+
+    $(document).bind("pagebeforechange", function( event, data ) {
+        $.mobile.pageData = (data && data.options && data.options.pageData) ? data.options.pageData : null;
+        onDeviceReady();
+    });
+
+    $('#weatherreport').live('pageshow',function(event, ui) {
+    	$('#weather').empty();
+        $('#weather').weatherfeed(['UKXX0085']);
+        // Update every 3 seconds
+        var options = { frequency: 3000 };
+        var watchID = navigator.geolocation.watchPosition(onSuccess, onError, options);
+    });
+
+    function onSuccess(position) {
+        var element = document.getElementById('geolocation');
+       // element.innerHTML = 
+       //     'Latitude: ' + position.coords.latitude + '<br />' +
+       //     'Longitude: ' + position.coords.longitude + '<br />' +
+       //     'Altitude: ' + position.coords.altitude + '<br />' +
+       //     'Accuracy: ' + position.coords.accuracy + '<br />' +
+       //     'Altitude Accuracy: ' + position.coords.altitudeAccuracy + '<br />' +
+       //     'Heading: ' + position.coords.heading + '<br />' +
+       //     'Speed: ' + position.coords.speed + '<br />' +
+       //     'Timestamp: ' +  new Date(position.timestamp) + '<br />' +
+       //     '<hr />' + element.innerHTML;
+    }
+
+    function onError(error) {
+        alert('code: ' + error.code + '\n' + 'message: ' + error.message + '\n');
+    }
+
+</script>
+<style type="text/css">
+    .ui-page.home {
+        background: transparent url(images/background1.png);
+    }
+</style>
+</head>
+<body>
+	
+<!-- TODO Eugene as a refactoring job split each data-role="page" into there own html page (at least the more complex ones!!!)
+ so that the code is cleaner -->
+ <div data-role="page" id="home" class="green" data-fullscreen="true">
+ <script type="text/javascript">
+     $(function () {
+        $('form').bind('submit', function (event) {
+            event.preventDefault();
+            //TODO at some stage needs to be https!
+            $.post('http://' + ipAddress + ':' + port + context +'/golfAPI/login', $(this).serialize(), function (data) {
+                if (data != "false") {
+                	var user = data.split(':');
+                	name = user[1];
+                	userid = user[0];
+                	$.mobile.changePage("#menu");
+                } else {
+                	$.mobile.changePage("#loginFailed", "pop", false, false);
+                }
+                
+            });
+        });
+    });
+</script>
+        <div data-role="content">
+        <img src="images/LogoNameWhite.png" />
+            <!--Login form start-->
+		<form id="login" data-ajax="false">
+		<!--<form id="login" action="http://' + ipAddress + ':' + port + '/golf-saas-storefront/golfAPI/login" method="post" data-ajax="false">-->
+			<div data-role="content">
+	         <label for="name" class="ui-input-text">Username:</label>
+	         <input type="text" value="" id="name" name="name" class="ui-input-text ui-body-null ui-corner-all ui-shadow-inset ui-body-c">
+			</div>
+
+			<div data-role="content">
+	         <label for="name" class="ui-input-text">Password:</label>
+	         <input type="password" value="" id="password" name="password" class="ui-input-text ui-body-null ui-corner-all ui-shadow-inset ui-body-c">
+			</div>
+
+		<fieldset class="ui-grid-a">
+				<div class="ui-block-a"><button data-theme="b" type="submit" class="ui-btn-hidden" aria-disabled="false">Login</button></div>
+				<div class="ui-block-b"><button data-theme="b" type="reset" class="ui-btn-hidden" aria-disabled="false">Clear</button></div>
+	    </fieldset>
+
+	</form>
+<!-- /Login form end-->
+        </div>
+    </div>
+    
+    <div data-role="page" id="menu" class="grass" data-fullscreen="true">
+        <div data-role="content">
+            <img src="images/GolfGreenIcon.png" />
+            <p><a href="#newround" data-role="button" data-inline="true" data-icon="arrow-r" data-iconpos="right" data-transition="pop">New Round</a></p>
+            <p><a href="#scoreanalysis" data-role="button" data-inline="true" data-icon="arrow-r" data-iconpos="right" data-transition="pop">Score Analysis</a></p>
+            <p><a href="#options" data-role="button" data-inline="true" data-icon="gear" data-iconpos="right" data-transition="pop">Options</a></p>
+            <p><a href="#sync" data-rel="dialog" data-role="button" data-inline="true" data-icon="refresh" data-iconpos="right">Sync</a></p>
+        </div>
+       
+    </div>
+
+<!-- New Round Page --> 
+    <div data-role="page" class="grass"  id="newround">
+        <div data-role="header" data-position="fixed">
+            <h1>New Round</h1>            
+            <script type="text/javascript">
+	            function updateCurrentGolfCourseID(golfcourseid) {
+	            	//TODO if the golfcourseid is not 0 then there is a game in progress so show dialog to ask if
+	            	//they wish to cancel current game.
+	        		var db = window.openDatabase("Golf", "1.0", "GolfDB", 200000);
+	        		db.transaction(function(tx) {
+	        			tx.executeSql("SELECT golfcourseid from SCORECARD_RECORD_CURRENT", [], function(tx,result){
+	        				var len = result.rows.length;
+        					for (var i=0; i<len; i++) {
+        						if (result.rows.item(i).golfcourseid != 0) {
+        							//db.transaction(function(tx) {
+       			        			$.mobile.changePage("#dialognewgame", "pop", false, false);
+        			        		//	tx.executeSql("UPDATE SCORECARD_RECORD_CURRENT set golfcourseid = '" + golfcourseid + "'");
+        			        		//}, errorDB);
+        						}
+        					}
+	        			});
+	        		}, errorDB);
+	        	}
+            
+	            $("#select-golf-courseID").live("change",function() {
+					$("#coursedetailshref").attr("href", "#coursedetails?courseid=" + $("#select-golf-courseID").val());
+					$("#courseinfo").attr("href", "#courseinfo?courseid=" + $("#select-golf-courseID").val());
+					$("#play").attr("href", "#play?courseid=" + $("#select-golf-courseID").val());
+					updateCurrentGolfCourseID($("#select-golf-courseID").val());
+					
+	         	});
+	            
+		        $(document).delegate("#newround", "pageinit", function() {
+		        	updateCurrentGolfCourseID($("#select-golf-courseID").val());
+		        	$.getJSON('http://' + ipAddress + ':' + port + context + '/golfAPI/scoreCards',
+	        		    function(scoreCards){
+			        		$.each(scoreCards, function() {
+		        				$("#select-golf-courseID").append('<option value="' + this.identifier + '">' + this.name + '</option>');
+		        				updateGolfCourse(this.identifier, this.name);
+		        			});
+		        			$('#select-golf-courseID :nth-child(4)').attr('selected', 'selected');
+		        			$('#select-golf-courseID').selectmenu();
+		  	                $('#select-golf-courseID').selectmenu('refresh');
+		  	                $("#coursedetailshref").attr("href", "#coursedetails?courseid=" + $("#select-golf-courseID").val());
+		  	              	$("#courseinfo").attr("href", "#courseinfo?courseid=" + $("#select-golf-courseID").val());
+		  	              	$("#play").attr("href", "#play?courseid=" + $("#select-golf-courseID").val());
+	        		        return false;
+        		    });
+	            });
+	        </script>
+        </div>
+
+        <div data-role="content">
+            <label for="select-golf-courseID">Select Golf Course ScoreCard</label>
+            <select data-inline="true" id="select-golf-courseID">
+            </select>
+        </div>
+
+        <div data-role="content">
+            <label for="flip-c">18/9 Holes:</label> <select name="slider"
+                id="flip-c" data-role="slider">
+                <option value="18">18 Hole</option>
+                <option value="9">9 Hole</option>
+            </select>
+        </div>
+        	<p><a href="#weatherreport" data-role="button" data-inline="true" data-icon="arrow-r" data-iconpos="right" data-transition="pop">Weather Report</a></p>
+            <p><a id="coursedetailshref" href="#coursedetails" data-role="button" data-inline="true" data-icon="arrow-r" data-iconpos="right" data-transition="pop">Course Details</a></p>
+            <p><a id="courseinfo" href="#courseinfo" data-role="button" data-inline="true" data-icon="arrow-r" data-iconpos="right" data-transition="pop">Course Info</a></p>
+            <p><a id="play" href="#play" data-role="button" data-inline="true" data-icon="arrow-r" data-iconpos="right" data-transition="pop">Play</a></p>
+    </div>
+    
+    <div data-role="dialog" id="dialognewgame">
+    	<div data-role="header">
+            <h1>Dialog</h1>
+            <script type="text/javascript">            	
+	            function resetCurrentGame() {
+	            	var db = window.openDatabase("Golf", "1.0", "GolfDB", 200000);
+		            db.transaction(function(tx) {		   				
+		   				tx.executeSql("UPDATE SCORECARD_RECORD_CURRENT set golfcourseid = '0'");
+		   				$.mobile.changePage("#newround", "pop", false, false);
+		    		}, errorDB);
+	            }
+            </script>
+        </div>
+        <div data-role="content">
+            <h1>Reset Current Game</h1>
+			<p>There is a game in progress do you wish to restart?</p> 
+			<a href="#" data-role="button" data-inline="true" onclick="resetCurrentGame(); return false" rel="external" data-theme="b">Clear Current Game</a>     
+			<a href="#newround" data-role="button" data-theme="b">Cancel</a>
+        </div>
+    </div>
+
+<!-- Score Analysis Page --> 
+    <div data-role="page" class="grass" id="scoreanalysis">
+        <div data-role="header">
+            <h1>Score Analysis</h1>
+        </div>
+        <div data-role="content">
+            <p>Coming Soon!!</p>
+        </div>
+    </div>
+
+<!-- Options Page --> 
+    <div data-role="page" class="grass" id="options">
+        <div data-role="header">
+            <h1>Options</h1>
+        </div>
+        <div data-role="content">
+            <p>Add the option here!</p>
+        </div>
+    </div>
+
+<!-- Sync Page --> 
+    <div data-role="page" class="grass" id="sync">
+        <div data-role="header">
+            <h1>Sync</h1>
+        </div>
+        <div data-role="content">
+            <p>This shouldn't be a page but a "upload in progress" dialog... coming soon!</p>
+        </div>
+    </div>
+
+<!-- Weather Report Page --> 
+    <div data-role="page" class="grass" id="weatherreport">
+        <div data-role="header">
+            <h1>Weather Report</h1>
+        </div>
+        <div data-role="content">
+            <p>Put Weather report here</p>
+            <div id="weather"></div>
+            <p id="geolocation">Watching geolocation...</p>
+        </div>
+    </div>
+
+<!-- Course Details Page --> 
+    <div data-role="page" class="grass" id="coursedetails">
+        <div data-role="header">
+            <h1>Course Details</h1>
+            <script type="text/javascript">
+            $("div:jqmData(role='page'):last").bind("pageshow", function() {
+            	$('#scardImage').remove();
+            	$('#coursedetailstable').replaceWith('<table id="coursedetailstable"></table>');
+            	var dataurl = $(this).attr("data-url");  
+            	var courseid = dataurl.split('=');
+            	$.getJSON('http://' + ipAddress + ':' + port + context + '/golfAPI/getGolfCourseFromScoreCard/' + courseid[1],
+        		    function(golfCourse) {
+		        		var html = '<table id="coursedetailstable"><tr><td>Course Type:</td><td>'
+		        			+ golfCourse.courseType + '</td></tr><tr><td>Holes:</td><td>'
+		        			+ golfCourse.holes 
+		        			//+ '</td></tr><tr><td>Par:</td><td>'
+		        			//+ golfCourse.scoreCard.par + '</td></tr><tr><td>Length:</td><td>'
+		        			//+ golfCourse.scoreCard.courseLengthYards 
+		        			+ '</td></tr><tr><td>Year Built:</td><td>'
+	                        + golfCourse.yearBuilt + '</td></tr><tr><td>Guests Welcome:</td><td>'
+	                        + golfCourse.guestsWelcome +'</td></tr><tr><td>Driving Range:</td><td>'
+	                        + golfCourse.drivingRange + '</td></tr><tr><td>Putting Green:</td><td>'
+	                        + golfCourse.puttingGreen + '</td></tr><tr><td>Rental Clubs:</td><td>'
+	                        + golfCourse.rentalClubs + '</td></tr><tr><td>Rental Trolley/Cart:</td><td>'
+	                        + golfCourse.rentalGolfTrolley + '</td></tr><tr><td>Pro shop:</td><td>'
+	                        + golfCourse.proShop + '</td></tr><tr><td>Teaching Pro:</td><td>'
+	                        + golfCourse.teachingPro + '</td></tr><tr><td>Bookings welcome:</td><td>'
+	                        + golfCourse.bookingsWelcomed + '</td></tr><tr><td>Price Range Week Days:</td><td>'
+	                        + golfCourse.priceRangeWeekdaysLow + ' - ' + golfCourse.priceRangeWeekdaysHigh
+	                        + '</td></tr><tr><td>Price Range Weekends:</td><td>' + golfCourse.priceRangeWeekendsLow + ' - ' + golfCourse.priceRangeWeekendsHigh
+	                        + '</td></tr><tr><td>Facilities:</td><td>' + golfCourse.otherFacilities + '</td></tr></table>'
+	                        + '<div id="scardImage"><img src="http://' + ipAddress + ':' + port + context + '/golfAPI/golfCourseScoreCardImage/'
+    		        			+ courseid[1] + '"/></div>';
+		        			$('#coursedetailstable').replaceWith(html);
+		        			return false;        		    
+		        		});
+            	});
+            </script>            
+        </div>
+        <div data-role="content">
+           <!-- <p>Course Details</p>  -->
+            <table id="coursedetailstable"></table>
+        </div>
+    </div>
+
+<!-- Course Info Page --> 
+    <div data-role="page" class="grass" id="courseinfo">
+        <div data-role="header">
+            <h1>Course Info</h1>
+            
+            <script type="text/javascript">
+            $("div:jqmData(role='page'):last").bind("pageshow", function() {
+            	$('#courseLogoImage').remove();
+            	$('#courseinfotable').replaceWith('<table id="courseinfotable"></table>');
+            	var dataurl = $(this).attr("data-url");  
+            	var courseid = dataurl.split('=');
+            	$.getJSON('http://' + ipAddress + ':' + port + context + '/golfAPI/getGolfCourseFromScoreCard/' + courseid[1],
+            		    function(golfCourse) {
+    		        		var html = '<div id="courseLogoImage"><img src="http://' + ipAddress + ':' + port + context + '/golfAPI/golfCourseImage/'
+		        			+ golfCourse.identifier + '"/></div>'
+		        			+'<table id="courseinfotable"><tr><td></td><td>'
+    		        			+ '</td></tr><tr><td>Course name:</td><td>'
+    		        			+ golfCourse.name + '</td></tr><tr><td>Address:</td><td>'
+    		        			+ golfCourse.address + '</td></tr><tr><td>Phone:</td><td>'
+    		        			+ golfCourse.phoneNumbers + '</td></tr><tr><td>Fax:</td><td>'
+    		        			+ golfCourse.fax + '</td></tr><tr><td>E-mail:</td><td>'
+    	                        + golfCourse.email + '</td></tr><tr><td>Website:</td><td>'
+    	                        + golfCourse.website + '</td></tr><tr><td></table>';
+    		        			$('#courseinfotable').replaceWith(html);
+    		        			return false;
+            		    });
+                	});
+            </script>
+        </div>
+        <div data-role="content">
+            <!-- <p>Course Information</p>  -->
+            <table id="courseinfotable"></table>
+        </div>
+    </div>
+
+<!-- Play Page -->    
+    <div data-role="page" class="grass" id="play">
+        <div data-role="header">
+            <h1>Golf Round</h1>
+            <script type="text/javascript">
+            $("div:jqmData(role='page'):last").bind("pageshow", function() {
+            var dataurl = $(this).attr("data-url");  
+        	var courseid = dataurl.split('=');
+            
+            $.getJSON('http://' + ipAddress + ':' + port + context + '/golfAPI/getScoreCard/' + courseid[1],
+        		    function(data) {
+            			scoreCard = data;		        		
+		        		$('#scoreCardName').text(scoreCard.name);
+		        		setHole(scoreCard.hole1);
+        		    });
+            });
+            	$('#play').live('pageshow', function() {
+            		$('#holeNumberPart2').text(1);
+            		$('#holeNumberPart3').text(1);
+            		$('#playerName').text("Player: " + name);//TODO get from login!!!
+            		var dataurl = $(this).attr("data-url");  
+                	var courseid = dataurl.split('=');
+            		setCurrentScoreCardGolfCourseID(dataurl.split('=')[1]);//TODO set golfcourseid
+            	});
+            	
+            	function minusShot() {
+            		var score = parseInt($('#currentScore').text());	
+            		if (score > 0) {
+            			$('#currentScore').text(score - 1);
+            		}
+            	};
+            	function plusShot() {
+            		var score = parseInt($('#currentScore').text());
+            		if (score < 36) {
+            			$('#currentScore').text(score + 1);
+            		}
+            	};
+            	function previous() {
+            		var holeNo = parseInt($('#holeNumberPart2').text());
+            		if (holeNo > 1) {
+            			var preHole = holeNo - 1;
+            			setHoleNumber(preHole);
+            			updateHoleScore(holeNo, $('#currentScore').text());
+            			getHoleScore(preHole);
+            		} else if (holeNo == 1) {
+            			$.mobile.changePage("#newround", null, false, true );
+            			setHole(scoreCard.hole1);
+            		}
+            	};
+				function next() {
+					var holeNo = parseInt($('#holeNumberPart2').text());
+					//TODO set limit based on the 9/18 holes option on "newpage"
+            		if (holeNo < 18) {
+            			var nextHole = holeNo + 1;
+            			setHoleNumber(nextHole);
+            			updateHoleScore(holeNo, $('#currentScore').text());
+            			getHoleScore(nextHole);
+            		} else if (holeNo == 18) {
+            			updateHoleScore(holeNo, $('#currentScore').text());
+            			$.mobile.changePage("#result", null, false, true );
+            		}
+            	};
+            	
+            	function setHoleNumber(number) {
+            		if (number == 1) {
+            			setHole(scoreCard.hole1, number);
+            		} else if  (number == 2) {
+            			setHole(scoreCard.hole2, number);
+            		}  else if  (number == 3) {
+            			setHole(scoreCard.hole3, number);
+            		} else if  (number == 4) {
+            			setHole(scoreCard.hole4, number);
+            		} else if  (number == 5) {
+            			setHole(scoreCard.hole5, number);
+            		} else if  (number == 6) {
+            			setHole(scoreCard.hole6, number);
+            		} else if  (number == 7) {
+            			setHole(scoreCard.hole7, number);
+            		} else if  (number == 8) {
+            			setHole(scoreCard.hole8, number);
+            		} else if  (number == 9) {
+            			setHole(scoreCard.hole9, number);
+            		} else if  (number == 10) {
+            			setHole(scoreCard.hole10, number);
+            		} else if  (number == 11) {
+            			setHole(scoreCard.hole11, number);
+            		} else if  (number == 12) {
+            			setHole(scoreCard.hole12, number);
+            		} else if  (number == 13) {
+            			setHole(scoreCard.hole13, number);
+            		} else if  (number == 14) {
+            			setHole(scoreCard.hole14, number);
+            		} else if  (number == 15) {
+            			setHole(scoreCard.hole15, number);
+            		} else if  (number == 16) {
+            			setHole(scoreCard.hole16, number);
+            		} else if  (number == 17) {
+            			setHole(scoreCard.hole17, number);
+            		} else if  (number == 18) {
+            			setHole(scoreCard.hole18, number);
+            		}
+            	};
+            	
+            	function setHole(hole, number) {
+            		$('#holeNumberPart2').text(number);
+            		$('#holeNumberPart3').text(number);
+	        		$('#holeInfoParValue').text(hole.par);
+	        		$('#holeInfoIndexValue').text(hole.holeIndex);
+	        		$('#holeInfoDistanceValue').text(hole.yards);
+            	};
+            </script>
+        </div>
+		<div data-role="content">
+			<!-- <p>This is where hole 1 of the 18 begins!!!! Also the "show map" button should show course
+            image in a pop-up dialog with just a close button to return to current hole screen.</p>-->
+
+			<div id="round" class="round-round">
+				<div class="round-top">
+					<table width="100%">
+						<tr>
+						  <td width="64%"><span id="scoreCardName"></span></td>
+						  <td width="20%"></td>
+						  <td width="4%"><span id="holeNumberPart1">Hole </span></td><td width="10%"><span id="holeNumberPart2"></span></td>
+						</tr>   
+						<tr>
+						  <td><span id="playerName"></span></td>
+						  <td></td>
+						  <td><span id="holeInfoPar">Par: </span></td><td><span id="holeInfoParValue"></span></td>
+						</tr>
+						<tr>
+						  <td></td>
+						  <td></td>
+						  <td><span id="holeInfoIndex">Index: </span></td><td><span id="holeInfoIndexValue"></span></td>
+						</tr>
+						<tr>
+						  <td></td>
+						  <td></td>
+						  <td><span id="holeInfoDistance">Distance: </span></td><td><span id="holeInfoDistanceValue"></td>
+						</tr>
+					</table>
+				</div>
+				
+				<div class="round-middle">
+				<table width="100%"><tr><td align="center">
+				<span id="holeNumberPart4">Hole </span><span id="holeNumberPart3"></span>
+				</td></tr></table>
+					<table width="100%">
+						<tr>
+						  	<td width="4%">
+						  		<div id="minusStroke" class="round-minusStroke">
+									<a href="#" id="plusminusbuttons" data-role="button" data-inline="true" onclick="minusShot(); return false" rel="external">-</a>
+								</div>
+							</td>
+						  	<td width="90%"  align="center">
+								<div id="currentScore" class="round-score">
+									0
+								</div>
+							</td>
+						  	<td width="4%">
+						  		<div id="plusStroke" class="round-plusStroke">
+									<a href="#" id="plusminusbuttons" data-role="button" data-inline="true" onclick="plusShot(); return false" rel="external">+</a>
+								</div>
+							</td>
+						</tr>
+					</table>
+				</div>
+
+				<div class="round-bottom">
+					<table width="100%" cellpadding="4">
+						<tr>
+						  	<td width="20%">
+								<div id="previous" class="round-previous">
+									<a href="#" data-role="button" data-inline="true" onclick="previous(); return false" rel="external">Previous</a>
+								</div>
+							</td>
+						  	<td width="60%">	
+							</td>
+						  	<td width="20%">
+								<div id="next" class="round-next">
+									<a href="#" data-role="button" data-inline="true" onclick="next(); return false" rel="external">Next</a>
+								</div>
+							</td>
+						</tr>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+    
+<!-- Game Report Page --> 
+    <div data-role="page" class="grass" id="result">
+    	<div data-role="header">
+            <h1>Golf Round Summary</h1>
+            <script type="text/javascript">
+	            var roundResults;
+	            
+	            function submitRound() {
+	            	$.post('http://' + ipAddress + ':' + port + context + '/golfAPI/postGolfRound/', 
+	            			{ "inProgress" : false, "userid" : userid, "scoreCardIdentifier" : scoreCard.identifier, "shotsHole1" : roundResults.hole1, "shotsHole10" : roundResults.hole10, "shotsHole11" : roundResults.hole11, "shotsHole12" : roundResults.hole12, "shotsHole13" : roundResults.hole13, "shotsHole14" : roundResults.hole14, "shotsHole15" : roundResults.hole15, "shotsHole16" : roundResults.hole16, "shotsHole17" : roundResults.hole17, "shotsHole18" : roundResults.hole18, "shotsHole2" : roundResults.hole2, "shotsHole3" : roundResults.hole3, "shotsHole4" : roundResults.hole4, "shotsHole5" : roundResults.hole5, "shotsHole6" : roundResults.hole6, "shotsHole7" : roundResults.hole7, "shotsHole8" : roundResults.hole8, "shotsHole9" : roundResults.hole9, "version" : 0 },
+	            			function(res) {
+	            				if (res == "true") {
+	            					$.mobile.changePage("#roundSubmitted", "pop", false, false);	            					
+	            				} else {
+	            					$.mobile.changePage("#savingRoundFailed", "pop", false, false);
+	            				}
+	            				$('#scoreResultTable').replaceWith('<table id="scoreResultTable" border="1"></table>');
+            		});
+	            }
+            
+	            function back() {
+	            	$('#scoreResultTable').replaceWith('<table id="scoreResultTable" border="1"></table>');
+            		$.mobile.changePage("#play", null, false, true );
+            	};
+            	$('#result').live('pageshow', function() {
+            		
+            		$('#scoreResultTable').append('<tr><th>Hole</th><th>Tee Distance</th><th>Par</th><th>Index</th><th>Score</th></tr>');
+            		var db = window.openDatabase("Golf", "1.0", "GolfDB", 200000);
+            			  
+            		db.transaction(function(tx) {
+            			tx.executeSql("SELECT * from SCORECARD_RECORD_CURRENT", [], function(tx,result) {
+            				roundResults = result.rows.item(0);
+            				for (var number = 0; number < 18; number++) {
+            					if (number == 1) {
+        	            			$('#scoreResultTable tr:last').after('<tr><td>Hole ' + (number + 1) + '</td><td>' + scoreCard.hole1.yards + '</td><td>' + scoreCard.hole1.par + 
+        	            					'</td><td>' + scoreCard.hole1.holeIndex + '</td><td>'+ result.rows.item(0).hole1 +'</td>');
+        	            		} else if  (number == 2) {
+        	            			$('#scoreResultTable tr:last').after('<tr><td>Hole ' + (number + 1) + '</td><td>' + scoreCard.hole2.yards + '</td><td>' + scoreCard.hole2.par + 
+        	            					'</td><td>' + scoreCard.hole2.holeIndex + '</td><td>'+ result.rows.item(0).hole2 +'</td>');
+        	            		}  else if  (number == 3) {
+        	            			$('#scoreResultTable tr:last').after('<tr><td>Hole ' + (number + 1) + '</td><td>' + scoreCard.hole3.yards + '</td><td>' + scoreCard.hole3.par + 
+        	            					'</td><td>' + scoreCard.hole3.holeIndex + '</td><td>'+ result.rows.item(0).hole3 +'</td>');
+        	            		} else if  (number == 4) {
+        	            			$('#scoreResultTable tr:last').after('<tr><td>Hole ' + (number + 1) + '</td><td>' + scoreCard.hole4.yards + '</td><td>' + scoreCard.hole4.par + 
+        	            					'</td><td>' + scoreCard.hole4.holeIndex + '</td><td>'+ result.rows.item(0).hole4 +'</td>');
+        	            		} else if  (number == 5) {
+        	            			$('#scoreResultTable tr:last').after('<tr><td>Hole ' + (number + 1) + '</td><td>' + scoreCard.hole5.yards + '</td><td>' + scoreCard.hole5.par + 
+        	            					'</td><td>' + scoreCard.hole5.holeIndex + '</td><td>'+ result.rows.item(0).hole5 +'</td>');
+        	            		} else if  (number == 6) {
+        	            			$('#scoreResultTable tr:last').after('<tr><td>Hole ' + (number + 1) + '</td><td>' + scoreCard.hole6.yards + '</td><td>' + scoreCard.hole6.par + 
+        	            					'</td><td>' + scoreCard.hole6.holeIndex + '</td><td>'+ result.rows.item(0).hole6 +'</td>');
+        	            		} else if  (number == 7) {
+        	            			$('#scoreResultTable tr:last').after('<tr><td>Hole ' + (number + 1) + '</td><td>' + scoreCard.hole7.yards + '</td><td>' + scoreCard.hole7.par + 
+        	            					'</td><td>' + scoreCard.hole7.holeIndex + '</td><td>'+ result.rows.item(0).hole7 +'</td>');
+        	            		} else if  (number == 8) {
+        	            			$('#scoreResultTable tr:last').after('<tr><td>Hole ' + (number + 1) + '</td><td>' + scoreCard.hole8.yards + '</td><td>' + scoreCard.hole8.par + 
+        	            					'</td><td>' + scoreCard.hole8.holeIndex + '</td><td>'+ result.rows.item(0).hole8 +'</td>');
+        	            		} else if  (number == 9) {
+        	            			$('#scoreResultTable tr:last').after('<tr><td>Hole ' + (number + 1) + '</td><td>' + scoreCard.hole9.yards + '</td><td>' + scoreCard.hole9.par + 
+        	            					'</td><td>' + scoreCard.hole9.holeIndex + '</td><td>'+ result.rows.item(0).hole9 +'</td>');
+        	            		} else if  (number == 10) {
+        	            			$('#scoreResultTable tr:last').after('<tr><td>Hole ' + (number + 1) + '</td><td>' + scoreCard.hole10.yards + '</td><td>' + scoreCard.hole10.par + 
+        	            					'</td><td>' + scoreCard.hole10.holeIndex + '</td><td>'+ result.rows.item(0).hole10 +'</td>');
+        	            		} else if  (number == 11) {
+        	            			$('#scoreResultTable tr:last').after('<tr><td>Hole ' + (number + 1) + '</td><td>' + scoreCard.hole11.yards + '</td><td>' + scoreCard.hole11.par + 
+        	            					'</td><td>' + scoreCard.hole11.holeIndex + '</td><td>'+ result.rows.item(0).hole11 +'</td>');
+        	            		} else if  (number == 12) {
+        	            			$('#scoreResultTable tr:last').after('<tr><td>Hole ' + (number + 1) + '</td><td>' + scoreCard.hole12.yards + '</td><td>' + scoreCard.hole12.par + 
+        	            					'</td><td>' + scoreCard.hole12.holeIndex + '</td><td>'+ result.rows.item(0).hole12 +'</td>');
+        	            		} else if  (number == 13) {
+        	            			$('#scoreResultTable tr:last').after('<tr><td>Hole ' + (number + 1) + '</td><td>' + scoreCard.hole13.yards + '</td><td>' + scoreCard.hole13.par + 
+        	            					'</td><td>' + scoreCard.hole13.holeIndex + '</td><td>'+ result.rows.item(0).hole13 +'</td>');
+        	            		} else if  (number == 14) {
+        	            			$('#scoreResultTable tr:last').after('<tr><td>Hole ' + (number + 1) + '</td><td>' + scoreCard.hole14.yards + '</td><td>' + scoreCard.hole14.par + 
+        	            					'</td><td>' + scoreCard.hole14.holeIndex + '</td><td>'+ result.rows.item(0).hole14 +'</td>');
+        	            		} else if  (number == 15) {
+        	            			$('#scoreResultTable tr:last').after('<tr><td>Hole ' + (number + 1) + '</td><td>' + scoreCard.hole15.yards + '</td><td>' + scoreCard.hole15.par + 
+        	            					'</td><td>' + scoreCard.hole15.holeIndex + '</td><td>'+ result.rows.item(0).hole15 +'</td>');
+        	            		} else if  (number == 16) {
+        	            			$('#scoreResultTable tr:last').after('<tr><td>Hole ' + (number + 1) + '</td><td>' + scoreCard.hole16.yards + '</td><td>' + scoreCard.hole16.par + 
+        	            					'</td><td>' + scoreCard.hole16.holeIndex + '</td><td>'+ result.rows.item(0).hole16 +'</td>');
+        	            		} else if  (number == 17) {
+        	            			$('#scoreResultTable tr:last').after('<tr><td>Hole ' + (number + 1) + '</td><td>' + scoreCard.hole17.yards + '</td><td>' + scoreCard.hole17.par + 
+        	            					'</td><td>' + scoreCard.hole17.holeIndex + '</td><td>'+ result.rows.item(0).hole17 +'</td>');
+        	            		} else if  (number == 18) {
+        	            			$('#scoreResultTable tr:last').after('<tr><td>Hole ' + (number + 1) + '</td><td>' + scoreCard.hole18.yards + '</td><td>' + scoreCard.hole18.par + 
+        	            					'</td><td>' + scoreCard.hole18.holeIndex + '</td><td>'+ result.rows.item(0).hole18 +'</td>');
+        	            		}
+            				}
+            			}, errorDB);
+            		});
+            	});
+            </script>
+        </div>
+        <div data-role="content">
+           <!-- <p>Golf Round Summary</p>  -->
+            <div id="round" class="round-round">
+		    	<div class="round-top">
+		        	<div id="scoreResult" class="scoreResult">
+			           <table id="scoreResultTable" border="1"></table>
+			        </div>
+			    </div>			
+			    <div class="round-bottom">
+			        <div id="previous" class="round-previous">
+			            <a href="#" data-role="button" data-inline="true" onclick="back(); return false" rel="external">Previous</a>
+			        </div>
+			        <div id="submit" class="round-next">
+			            <a href="#" data-role="button" data-inline="true" onclick="submitRound(); return false" rel="external">Submit</a>
+			        </div>
+			    </div>
+	        </div>
+        </div>
+    </div>
+    <!-- Dialogs -->
+    <div data-role="dialog" id="savingRoundFailed">
+    	<div data-role="header">
+            <h1>Failed to Save Round</h1>
+        </div>
+        <div data-role="content">
+            <h1>Failed to Save Round</h1>
+			<p>Something when wrong will saving round. Sorry! Ensure that the all holes have a score.</p>
+			<a href="#newround" data-role="button" data-theme="b">OK</a>
+        </div>
+    </div>
+    <div data-role="dialog" id="loginFailed">
+    	<div data-role="header">
+            <h1>Login Failed</h1>
+        </div>
+        <div data-role="content">
+            <h1>Login Failed</h1>
+			<p>Invalid Username or Password</p>
+			<a href="#home" data-role="button" data-theme="b">OK</a>
+        </div>
+    </div>
+    <div data-role="dialog" id="roundSubmitted">
+    	<div data-role="header">
+            <h1>Golf Round Submitted</h1>
+        </div>
+        <div data-role="content">
+            <h1>Golf Round Submitted</h1>
+			<p>golf round has been added to you account</p>
+			<a href="#newround" data-role="button" data-theme="b">OK</a>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,117 @@
+/*!
+ * Copyright 2010, Eugene Bell
+ * Dual licensed under the MIT or GPL Version 2 licenses.
+ * 
+ */
+
+    
+.round-round {
+	margin:1px;
+}
+
+.round-top {
+	position:absolute; 
+	top:10%;
+	width: 98%;
+}
+
+.round-playerName {
+	float: left;
+}
+
+.round-hole {
+	float: right;
+}
+
+.round-middle {
+	position:absolute;
+	top:50%;
+	width: 98%;
+}
+
+.round-minusStroke {	
+	float: left;
+}
+
+.round-score {
+	width:100%;
+}
+
+.round-plusStroke {
+	float: right;
+	padding-right: 8px;
+}
+
+.round-bottom {
+	position:absolute;
+	top:85%;
+	width: 98%;
+}
+
+.round-next {
+	/*position:relative;*/
+	float: right;
+	padding-right: 8px;
+}
+
+.round-previous {
+	/*position:relative;*/
+	float: left;
+}
+
+#holeNumberPart3 {
+	color:white; 
+	font-size:26pt
+}
+
+#holeNumberPart4 {
+	color:white; 
+	font-size:26pt
+}
+
+
+#plusminusbuttons .ui-btn-inner { padding: 18px; 
+	font-size: 40px;
+}
+
+#currentScore {
+
+	font-size: 48px;
+}
+
+#previous .ui-btn-inner {
+	width: 90px;
+	font-size: 18px;
+}
+
+#next .ui-btn-inner {
+	width: 90px;
+	font-size: 18px;
+}
+
+#submit .ui-btn-inner {
+	width: 90px;
+	font-size: 18px;
+}
+
+
+#scoreResultTable {
+    margin-left:auto; 
+    margin-right:auto;
+    border:2px solid  black;
+    background-color: green;
+    width:80%;
+    border-collapse:collapse;
+  }
+  
+#scardImage img {
+    width  : 100%;
+    height : auto;
+}
+
+#courseLogoImage img {
+	width  : 25%;
+    height : auto;
+}
+
+
